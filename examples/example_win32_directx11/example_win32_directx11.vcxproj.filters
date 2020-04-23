@@ -16,6 +16,9 @@
     <Filter Include="utils">
       <UniqueIdentifier>{cd3e1454-db45-41a9-8eb1-0b57202b9401}</UniqueIdentifier>
     </Filter>
+    <Filter Include="widgets">
+      <UniqueIdentifier>{7267e8ef-e072-49ef-9c79-d0a989329f0e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\imconfig.h">
@@ -38,6 +41,9 @@
     </ClInclude>
     <ClInclude Include="ImGuiUtils.h">
       <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\imgui_memory_editor.h">
+      <Filter>widgets</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

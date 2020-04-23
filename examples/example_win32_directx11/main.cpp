@@ -15,15 +15,17 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include "ImGuiUtils.h"
+#include "Widgets/imgui_memory_editor.h"
 
 #pragma endregion
 
-
 // Data
-static ID3D11Device*            g_pd3dDevice = NULL;
-static ID3D11DeviceContext*     g_pd3dDeviceContext = NULL;
-static IDXGISwapChain*          g_pSwapChain = NULL;
-static ID3D11RenderTargetView*  g_mainRenderTargetView = NULL;
+static ID3D11Device* g_pd3dDevice = NULL;
+static ID3D11DeviceContext* g_pd3dDeviceContext = NULL;
+static IDXGISwapChain* g_pSwapChain = NULL;
+static ID3D11RenderTargetView* g_mainRenderTargetView = NULL;
+
+#pragma region helper_declarations
 
 // Forward declarations of helper functions
 bool CreateDeviceD3D(HWND hWnd);
@@ -31,55 +33,8 @@ void CleanupDeviceD3D();
 void CreateRenderTarget();
 void CleanupRenderTarget();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
-#pragma region dx11imagesetup
-// see link at top
-// Simple helper function to load an image into a DX11 texture with common settings
-bool LoadTextureFromFile(const char* filename, ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height)
-{
-    // Load from disk into a raw RGBA buffer
-    int image_width = 0;
-    int image_height = 0;
-    unsigned char* image_data = stbi_load(filename, &image_width, &image_height, NULL, 4);
-    if (image_data == NULL)
-        return false;
-
-    // Create texture
-    D3D11_TEXTURE2D_DESC desc;
-    ZeroMemory(&desc, sizeof(desc));
-    desc.Width = image_width;
-    desc.Height = image_height;
-    desc.MipLevels = 1;
-    desc.ArraySize = 1;
-    desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    desc.SampleDesc.Count = 1;
-    desc.Usage = D3D11_USAGE_DEFAULT;
-    desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-    desc.CPUAccessFlags = 0;
-
-    ID3D11Texture2D* pTexture = NULL;
-    D3D11_SUBRESOURCE_DATA subResource;
-    subResource.pSysMem = image_data;
-    subResource.SysMemPitch = desc.Width * 4;
-    subResource.SysMemSlicePitch = 0;
-    g_pd3dDevice->CreateTexture2D(&desc, &subResource, &pTexture);
-
-    // Create texture view
-    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
-    ZeroMemory(&srvDesc, sizeof(srvDesc));
-    srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-    srvDesc.Texture2D.MipLevels = desc.MipLevels;
-    srvDesc.Texture2D.MostDetailedMip = 0;
-    g_pd3dDevice->CreateShaderResourceView(pTexture, &srvDesc, out_srv);
-    pTexture->Release();
-
-    *out_width = image_width;
-    *out_height = image_height;
-    stbi_image_free(image_data);
-
-    return true;
-};
+// DX Image Loader
+bool LoadTextureFromFile(const char* filename, ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height);
 #pragma endregion
 
 
@@ -123,8 +78,6 @@ int main(int, char**)
     io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports; // FIXME-DPI
 #endif
 
-
-
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
     //ImGui::StyleColorsClassic();
@@ -133,7 +86,6 @@ int main(int, char**)
     ImGuiStyle& style = ImGui::GetStyle();
     style.ScaleAllSizes(1.5f);
     ImGuiUtils::SetupImGuiStyle(true, 0.8f);
-
 
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
     {
@@ -145,7 +97,7 @@ int main(int, char**)
     ImGui_ImplWin32_Init(hwnd);
     ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
 
-    #pragma region loadfonts
+#pragma region load_fonts
     // Load Fonts
     // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
     // - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
@@ -161,31 +113,32 @@ int main(int, char**)
     //io.Fonts->AddFontFromFileTTF("../../misc/fonts/ProggyTiny.ttf", 10.0f);
     //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
     //IM_ASSERT(font != NULL);
-    #pragma endregion
+#pragma endregion
 
-
-    #pragma region state
-    // Our state
+#pragma region state
+// Our state
     bool show_demo_window = true;
-    bool show_another_window = false;
+    bool sandbox_window = false;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     // Sandbox state
     bool my_tool_active = true;
     ImVec4 my_color = ImVec4(0.15f, 0.15f, 0.10f, 1.00f);
-    #pragma endregion
+#pragma endregion
 
-
-    #pragma region loadimagesDX11
-    // see link at top
+#pragma region dx11_image_state
+    bool show_dx_window = false;
     int my_image_width = 0;
     int my_image_height = 0;
     ID3D11ShaderResourceView* my_texture = NULL;
-    /*bool ret = LoadTextureFromFile("../../MyImage01.jpg", &my_texture, &my_image_width, &my_image_height);*/
+    //bool ret = LoadTextureFromFile("../../MyImage01.jpg", &my_texture, &my_image_width, &my_image_height);
     bool ret = LoadTextureFromFile("Image/MyImage01.jpg", &my_texture, &my_image_width, &my_image_height);
     IM_ASSERT(ret);
-    #pragma endregion
-    
+
+    static MemoryEditor mem_edit_image; // memory
+#pragma endregion
+
+#pragma region main_loop_start
 
     // Main loop
     MSG msg;
@@ -209,6 +162,11 @@ int main(int, char**)
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
+#pragma endregion
+
+#pragma region demo_window
+
+
         // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
         if (show_demo_window)
             ImGui::ShowDemoWindow(&show_demo_window);
@@ -222,7 +180,8 @@ int main(int, char**)
 
             ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
             ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-            ImGui::Checkbox("Another Window", &show_another_window);
+            ImGui::Checkbox("Another Window", &sandbox_window);
+            ImGui::Checkbox("DX Window", &show_dx_window);
 
             ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
             ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
@@ -236,27 +195,46 @@ int main(int, char**)
             ImGui::End();
         }
 
+#pragma endregion
+
+
+#pragma region sandbox_window
+
         // 3. Show another simple window.
-        if (show_another_window)
+        if (sandbox_window)
         {
-            ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-            ImGui::Text("Hello from another window!");
+            ImGui::Begin("Sandbox Window", &sandbox_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+            ImGui::PlotLines("Sin", [](void* data, int idx) { return sinf(idx * 0.2f); }, NULL, 100);
+            ImGui::PlotLines("Cos", [](void* data, int idx) { return cosf(idx * 0.2f); }, NULL, 100);
             if (ImGui::Button("Close Me"))
-                show_another_window = false;
+                sandbox_window = false;
             ImGui::End();
         }
 
+#pragma endregion
 
+#pragma region dx11_load_image
+        // see link at top
 
-        #pragma region dx11loadimage
-        ImGui::Begin("DirectX11 Texture Test");
-        ImGui::Text("pointer = %p", my_texture);
-        ImGui::Text("size = %d x %d", my_image_width, my_image_height);
-        ImGui::Image((void*)my_texture, ImVec2(my_image_width, my_image_height));
-        ImGui::Image((void*)my_texture, ImVec2(my_image_width * 0.5f, my_image_height * 0.5f)); // half size
-        ImGui::End();
-        #pragma endregion
+        // TODO - this is causing issues in fps after about 5 seconds
+        if (show_dx_window)
+        {
 
+            ImGui::Begin("DirectX11 Texture Test");
+            //ImGui::Text("pointer = %p", my_texture);
+            //ImGui::Text("size = %d x %d", my_image_width, my_image_height);
+            //ImGui::Image((void*)my_texture, ImVec2(my_image_width, my_image_height));
+            //ImGui::Image((void*)my_texture, ImVec2(my_image_width * 0.5f, my_image_height * 0.5f)); // half size       
+            ImGui::End();
+
+            /*ImGui::Begin("Image Memory");
+            mem_edit_image.DrawContents(my_texture, sizeof(*my_texture), (size_t)my_texture);
+            ImGui::End();*/
+        }
+
+#pragma endregion
+
+#pragma region rendering_swap_main_loop_end
 
         // Rendering
         ImGui::Render();
@@ -275,6 +253,10 @@ int main(int, char**)
         //g_pSwapChain->Present(0, 0); // Present without vsync
     }
 
+#pragma endregion 
+
+#pragma region cleanup
+
     // Cleanup
     ImGui_ImplDX11_Shutdown();
     ImGui_ImplWin32_Shutdown();
@@ -286,6 +268,10 @@ int main(int, char**)
 
     return 0;
 }
+
+#pragma endregion
+
+#pragma region helperfuncs
 
 // Helper functions
 
@@ -382,3 +368,54 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     }
     return ::DefWindowProc(hWnd, msg, wParam, lParam);
 }
+#pragma endregion
+
+#pragma region dx11imagesetupMOVETOCLASS
+// see link at top
+// Simple helper function to load an image into a DX11 texture with common settings
+bool LoadTextureFromFile(const char* filename, ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height)
+{
+    // Load from disk into a raw RGBA buffer
+    int image_width = 0;
+    int image_height = 0;
+    unsigned char* image_data = stbi_load(filename, &image_width, &image_height, NULL, 4);
+    if (image_data == NULL)
+        return false;
+
+    // Create texture
+    D3D11_TEXTURE2D_DESC desc;
+    ZeroMemory(&desc, sizeof(desc));
+    desc.Width = image_width;
+    desc.Height = image_height;
+    desc.MipLevels = 1;
+    desc.ArraySize = 1;
+    desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    desc.SampleDesc.Count = 1;
+    desc.Usage = D3D11_USAGE_DEFAULT;
+    desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+    desc.CPUAccessFlags = 0;
+
+    ID3D11Texture2D* pTexture = NULL;
+    D3D11_SUBRESOURCE_DATA subResource;
+    subResource.pSysMem = image_data;
+    subResource.SysMemPitch = desc.Width * 4;
+    subResource.SysMemSlicePitch = 0;
+    g_pd3dDevice->CreateTexture2D(&desc, &subResource, &pTexture);
+
+    // Create texture view
+    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
+    ZeroMemory(&srvDesc, sizeof(srvDesc));
+    srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    srvDesc.Texture2D.MipLevels = desc.MipLevels;
+    srvDesc.Texture2D.MostDetailedMip = 0;
+    g_pd3dDevice->CreateShaderResourceView(pTexture, &srvDesc, out_srv);
+    pTexture->Release();
+
+    *out_width = image_width;
+    *out_height = image_height;
+    stbi_image_free(image_data);
+
+    return true;
+};
+#pragma endregion

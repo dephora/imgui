@@ -151,6 +151,7 @@
     <ClInclude Include="..\imgui_impl_win32.h" />
     <ClInclude Include="ImGuiUtils.h" />
     <ClInclude Include="stb_image.h" />
+    <ClInclude Include="Widgets\imgui_memory_editor.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\imgui.cpp" />
