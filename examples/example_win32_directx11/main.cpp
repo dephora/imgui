@@ -99,17 +99,22 @@ int main(int, char**)
 #pragma region styles_bindings
 
     // Setup Dear ImGui style
-    ImGui::StyleColorsDark();
+    //ImGui::StyleColorsDark();
     //ImGui::StyleColorsClassic();
 
+    // Themes
+    //ImGui::StyleBinksDark(true, 0.8f);
+    ImGui::StyleGrayUE4();
+    //ImGui::StyleGrayUE4Alt(); // TODO redo colors
+    //ImGui::DarkBlueTheme();
+    //ImGui::StyleGreen();
+    //ImGui::AdobePSDark();
+    //ImGui::CherryTheme();
+
     // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
-    ImGuiStyle& style = ImGui::GetStyle();
-
-    // DPI Scaling - TODO: mess with this.
-    style.ScaleAllSizes(1.5f);
-
-    // Theme
-    ImGui::SetupImGuiStyle(true, 0.8f);
+    ImGuiStyle& style = ImGui::GetStyle();    
+    style.ScaleAllSizes(1.5f); // DPI Scaling - TODO: mess with this.
+    
 
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
     {
@@ -131,7 +136,7 @@ int main(int, char**)
     // - Read 'docs/FONTS.txt' for more instructions and details.
     // - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
     //io.Fonts->AddFontDefault();
-    io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
+    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
     //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Karla-Regular.ttf", 16.0f);
     //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
     //io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
