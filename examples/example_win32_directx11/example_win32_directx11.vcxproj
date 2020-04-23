@@ -152,6 +152,7 @@
     <ClInclude Include="ImGuiUtils.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="Widgets\imgui_memory_editor.h" />
+    <ClInclude Include="Widgets\imgui_plot.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\imgui.cpp" />
@@ -161,6 +162,7 @@
     <ClCompile Include="..\imgui_impl_dx11.cpp" />
     <ClCompile Include="..\imgui_impl_win32.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Widgets\imgui_plot.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\misc\natvis\imgui.natvis" />

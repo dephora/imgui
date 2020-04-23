@@ -16,14 +16,20 @@
 #include "stb_image.h"
 #include "ImGuiUtils.h"
 #include "Widgets/imgui_memory_editor.h"
+#include "Widgets/imgui_plot.hpp"
+#include <cmath>
 
 #pragma endregion
+
+#pragma region dx_static
 
 // Data
 static ID3D11Device* g_pd3dDevice = NULL;
 static ID3D11DeviceContext* g_pd3dDeviceContext = NULL;
 static IDXGISwapChain* g_pSwapChain = NULL;
 static ID3D11RenderTargetView* g_mainRenderTargetView = NULL;
+
+#pragma endregion
 
 #pragma region helper_declarations
 
@@ -35,8 +41,19 @@ void CleanupRenderTarget();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 // DX Image Loader
 bool LoadTextureFromFile(const char* filename, ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height);
+
+//ImVec2 ImBezierCalc(const ImVec2& p1, const ImVec2& p2, const ImVec2& p3, const ImVec2& p4, float t)
+//{
+//    float u = 1.0f - t;
+//    float w1 = u * u * u;
+//    float w2 = 3 * u * u * t;
+//    float w3 = 3 * u * t * t;
+//    float w4 = t * t * t;
+//    return ImVec2(w1 * p1.x + w2 * p2.x + w3 * p3.x + w4 * p4.x, w1 * p1.y + w2 * p2.y + w3 * p3.y + w4 * p4.y);
+//}
 #pragma endregion
 
+#pragma region MAIN_CORE_SETUP
 
 // Main code
 int main(int, char**)
@@ -77,6 +94,9 @@ int main(int, char**)
     io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;     // FIXME-DPI: THIS CURRENTLY DOESN'T WORK AS EXPECTED. DON'T USE IN USER APP!
     io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports; // FIXME-DPI
 #endif
+#pragma endregion
+
+#pragma region styles_bindings
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
@@ -84,18 +104,23 @@ int main(int, char**)
 
     // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
     ImGuiStyle& style = ImGui::GetStyle();
+
+    // DPI Scaling - TODO: mess with this.
     style.ScaleAllSizes(1.5f);
-    ImGuiUtils::SetupImGuiStyle(true, 0.8f);
+
+    // Theme
+    ImGui::SetupImGuiStyle(true, 0.8f);
 
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
     {
-        style.WindowRounding = 0.0f;
-        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+        style.WindowRounding = 0.0f;                // window rounding
+        style.Colors[ImGuiCol_WindowBg].w = 1.0f;   // window opacity
     }
 
     // Setup Platform/Renderer bindings
     ImGui_ImplWin32_Init(hwnd);
     ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
+#pragma endregion
 
 #pragma region load_fonts
     // Load Fonts
@@ -115,8 +140,10 @@ int main(int, char**)
     //IM_ASSERT(font != NULL);
 #pragma endregion
 
-#pragma region state
-// Our state
+
+
+#pragma region STATE
+    // Our state
     bool show_demo_window = true;
     bool sandbox_window = false;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
@@ -124,19 +151,58 @@ int main(int, char**)
     // Sandbox state
     bool my_tool_active = true;
     ImVec4 my_color = ImVec4(0.15f, 0.15f, 0.10f, 1.00f);
-#pragma endregion
 
 #pragma region dx11_image_state
-    bool show_dx_window = false;
+    bool dx_image_window = false;
     int my_image_width = 0;
     int my_image_height = 0;
     ID3D11ShaderResourceView* my_texture = NULL;
-    //bool ret = LoadTextureFromFile("../../MyImage01.jpg", &my_texture, &my_image_width, &my_image_height);
     bool ret = LoadTextureFromFile("Image/MyImage01.jpg", &my_texture, &my_image_width, &my_image_height);
     IM_ASSERT(ret);
 
     static MemoryEditor mem_edit_image; // memory
 #pragma endregion
+
+#pragma region plot_state
+
+    const float PI = 3.14f;
+
+    ImGui::PlotInterface plot;
+
+    int num_items = 2;
+    std::vector<ImGui::PlotItem> items(num_items);
+
+    plot.title = "My Plot Title";
+    plot.x_axis.minimum = 0;
+    plot.x_axis.maximum = 2;
+    plot.x_axis.label = "My X-Axis";
+
+    items[0].label = "My Line Plot";
+    items[0].type = ImGui::PlotItem::Line;
+    items[0].color = ImVec4(1, 1, 0, 1);
+    //items[0].data = std::vector<ImVec2>();
+    items[0].data.resize(2000);
+    for (int i = 0; i < 2000; ++i)
+    {
+        float x = i * 0.001f;
+        float y = 0.5f + 0.5f * std::sin(2 * PI * 1 * x);
+        items[0].data[i] = { x, y };
+    }
+
+    items[1].label = "My Other Plot";
+    items[1].type = ImGui::PlotItem::Line;
+    items[1].color = ImVec4(.4f, .4f, .8f, 1);
+    //items[0].data = std::vector<ImVec2>();
+    items[1].data.resize(2000);
+    for (int i = 0; i < 2000; ++i)
+    {
+        float x = i * 0.001f;
+        float y = 0.5f + 0.5f * std::cos(2 * PI * 1 * x);
+        items[1].data[i] = { x, y };
+    }
+    
+#pragma endregion
+#pragma endregion STATE
 
 #pragma region main_loop_start
 
@@ -164,8 +230,7 @@ int main(int, char**)
 
 #pragma endregion
 
-#pragma region demo_window
-
+#pragma region show_demo_WINDOW
 
         // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
         if (show_demo_window)
@@ -181,7 +246,7 @@ int main(int, char**)
             ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
             ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
             ImGui::Checkbox("Another Window", &sandbox_window);
-            ImGui::Checkbox("DX Window", &show_dx_window);
+            ImGui::Checkbox("DX Window", &dx_image_window);
 
             ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
             ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
@@ -197,8 +262,7 @@ int main(int, char**)
 
 #pragma endregion
 
-
-#pragma region sandbox_window
+#pragma region sandbox_WINDOW
 
         // 3. Show another simple window.
         if (sandbox_window)
@@ -213,26 +277,37 @@ int main(int, char**)
 
 #pragma endregion
 
-#pragma region dx11_load_image
+#pragma region dx_image_WINDOW
         // see link at top
 
         // TODO - this is causing issues in fps after about 5 seconds
-        if (show_dx_window)
+        if (dx_image_window)
         {
-
             ImGui::Begin("DirectX11 Texture Test");
-            //ImGui::Text("pointer = %p", my_texture);
-            //ImGui::Text("size = %d x %d", my_image_width, my_image_height);
-            //ImGui::Image((void*)my_texture, ImVec2(my_image_width, my_image_height));
-            //ImGui::Image((void*)my_texture, ImVec2(my_image_width * 0.5f, my_image_height * 0.5f)); // half size       
+            ImGui::Text("pointer = %p", my_texture);
+            ImGui::Text("size = %d x %d", my_image_width, my_image_height);
+            ImGui::Image((void*)my_texture, ImVec2(my_image_width, my_image_height));
+            ImGui::Image((void*)my_texture, ImVec2(my_image_width * 0.5f, my_image_height * 0.5f)); // half size
+            /*if (ImGui::Button("Close Me"))
+                dx_image_window = false;*/
             ImGui::End();
 
-            /*ImGui::Begin("Image Memory");
+            ImGui::Begin("Image Memory");
             mem_edit_image.DrawContents(my_texture, sizeof(*my_texture), (size_t)my_texture);
-            ImGui::End();*/
+            ImGui::End();
         }
 
 #pragma endregion
+
+#pragma region plot_window
+
+        ImGui::Begin("My Window");
+        ImGui::Plot("My Plot", plot, items);
+        ImGui::End();
+
+#pragma endregion
+
+        
 
 #pragma region rendering_swap_main_loop_end
 
@@ -253,7 +328,7 @@ int main(int, char**)
         //g_pSwapChain->Present(0, 0); // Present without vsync
     }
 
-#pragma endregion 
+#pragma endregion
 
 #pragma region cleanup
 
@@ -271,7 +346,7 @@ int main(int, char**)
 
 #pragma endregion
 
-#pragma region helperfuncs
+#pragma region helper_funcs
 
 // Helper functions
 

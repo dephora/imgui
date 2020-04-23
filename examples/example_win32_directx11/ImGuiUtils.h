@@ -3,7 +3,7 @@
 
 //#include "IconsFontAwesome.h" // from https://github.com/juliettef/IconFontCppHeaders
 
-namespace ImGuiUtils
+namespace ImGui
 {
 
 

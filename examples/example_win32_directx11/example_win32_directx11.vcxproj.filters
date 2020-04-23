@@ -45,6 +45,7 @@
     <ClInclude Include="Widgets\imgui_memory_editor.h">
       <Filter>widgets</Filter>
     </ClInclude>
+    <ClInclude Include="Widgets\imgui_plot.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\imgui.cpp">
@@ -68,6 +69,7 @@
     <ClCompile Include="..\..\imgui_widgets.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
+    <ClCompile Include="Widgets\imgui_plot.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\README.txt" />
