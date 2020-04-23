@@ -74,4 +74,7 @@
       <Filter>themes</Filter>
     </Text>
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="Image\MyImage01.jpg" />
+  </ItemGroup>
 </Project>

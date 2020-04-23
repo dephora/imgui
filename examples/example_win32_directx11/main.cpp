@@ -1,5 +1,8 @@
 // dear imgui - standalone example application for DirectX 11
 // If you are new to dear imgui, see examples/README.txt and documentation at the top of imgui.cpp.
+// https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples
+
+#pragma region includes
 
 #include "imgui.h"
 #include "imgui_impl_win32.h"
@@ -12,6 +15,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include "ImGuiUtils.h"
+
+#pragma endregion
 
 
 // Data
@@ -26,6 +31,57 @@ void CleanupDeviceD3D();
 void CreateRenderTarget();
 void CleanupRenderTarget();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+#pragma region dx11imagesetup
+// see link at top
+// Simple helper function to load an image into a DX11 texture with common settings
+bool LoadTextureFromFile(const char* filename, ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height)
+{
+    // Load from disk into a raw RGBA buffer
+    int image_width = 0;
+    int image_height = 0;
+    unsigned char* image_data = stbi_load(filename, &image_width, &image_height, NULL, 4);
+    if (image_data == NULL)
+        return false;
+
+    // Create texture
+    D3D11_TEXTURE2D_DESC desc;
+    ZeroMemory(&desc, sizeof(desc));
+    desc.Width = image_width;
+    desc.Height = image_height;
+    desc.MipLevels = 1;
+    desc.ArraySize = 1;
+    desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    desc.SampleDesc.Count = 1;
+    desc.Usage = D3D11_USAGE_DEFAULT;
+    desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+    desc.CPUAccessFlags = 0;
+
+    ID3D11Texture2D* pTexture = NULL;
+    D3D11_SUBRESOURCE_DATA subResource;
+    subResource.pSysMem = image_data;
+    subResource.SysMemPitch = desc.Width * 4;
+    subResource.SysMemSlicePitch = 0;
+    g_pd3dDevice->CreateTexture2D(&desc, &subResource, &pTexture);
+
+    // Create texture view
+    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
+    ZeroMemory(&srvDesc, sizeof(srvDesc));
+    srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    srvDesc.Texture2D.MipLevels = desc.MipLevels;
+    srvDesc.Texture2D.MostDetailedMip = 0;
+    g_pd3dDevice->CreateShaderResourceView(pTexture, &srvDesc, out_srv);
+    pTexture->Release();
+
+    *out_width = image_width;
+    *out_height = image_height;
+    stbi_image_free(image_data);
+
+    return true;
+};
+#pragma endregion
+
 
 // Main code
 int main(int, char**)
@@ -61,11 +117,13 @@ int main(int, char**)
     //io.ConfigViewportsNoTaskBarIcon = true;
     //io.ConfigViewportsNoDefaultParent = true;
     //io.ConfigDockingAlwaysTabBar = true;
-    //io.ConfigDockingTransparentPayload = true;
+    io.ConfigDockingTransparentPayload = true;
 #if 1
     io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;     // FIXME-DPI: THIS CURRENTLY DOESN'T WORK AS EXPECTED. DON'T USE IN USER APP!
     io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports; // FIXME-DPI
 #endif
+
+
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
@@ -73,7 +131,8 @@ int main(int, char**)
 
     // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
     ImGuiStyle& style = ImGui::GetStyle();
-    ImGuiUtils::SetupImGuiStyle(true, 0.3f);
+    style.ScaleAllSizes(1.5f);
+    ImGuiUtils::SetupImGuiStyle(true, 0.8f);
 
 
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
@@ -86,6 +145,7 @@ int main(int, char**)
     ImGui_ImplWin32_Init(hwnd);
     ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
 
+    #pragma region loadfonts
     // Load Fonts
     // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
     // - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
@@ -101,7 +161,10 @@ int main(int, char**)
     //io.Fonts->AddFontFromFileTTF("../../misc/fonts/ProggyTiny.ttf", 10.0f);
     //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
     //IM_ASSERT(font != NULL);
+    #pragma endregion
 
+
+    #pragma region state
     // Our state
     bool show_demo_window = true;
     bool show_another_window = false;
@@ -110,6 +173,18 @@ int main(int, char**)
     // Sandbox state
     bool my_tool_active = true;
     ImVec4 my_color = ImVec4(0.15f, 0.15f, 0.10f, 1.00f);
+    #pragma endregion
+
+
+    #pragma region loadimagesDX11
+    // see link at top
+    int my_image_width = 0;
+    int my_image_height = 0;
+    ID3D11ShaderResourceView* my_texture = NULL;
+    /*bool ret = LoadTextureFromFile("../../MyImage01.jpg", &my_texture, &my_image_width, &my_image_height);*/
+    bool ret = LoadTextureFromFile("Image/MyImage01.jpg", &my_texture, &my_image_width, &my_image_height);
+    IM_ASSERT(ret);
+    #pragma endregion
     
 
     // Main loop
@@ -171,36 +246,17 @@ int main(int, char**)
             ImGui::End();
         }
 
-        if (my_tool_active){
-            
-            ImGui::Begin("My First Tool", &my_tool_active, ImGuiWindowFlags_MenuBar);
-            if (ImGui::BeginMenuBar())
-            {
-                if (ImGui::BeginMenu("File"))
-                {
-                    if (ImGui::MenuItem("Open..", "Ctrl+O")) { /* Do stuff */ }
-                    if (ImGui::MenuItem("Save", "Ctrl+S")) { /* Do stuff */ }
-                    if (ImGui::MenuItem("Close", "Ctrl+W")) { my_tool_active = false; }
-                    ImGui::EndMenu();
-                }
-                ImGui::EndMenuBar();
-            }
 
-            // Edit a color (stored as ~4 floats)
-            ImGui::ColorEdit4("Color", (float*)&my_color);
 
-            // Plot some values
-            const float my_values[] = { 0.2f, 0.1f, 1.0f, 0.5f, 0.9f, 2.2f };
-            ImGui::PlotLines("Frame Times", my_values, IM_ARRAYSIZE(my_values));
+        #pragma region dx11loadimage
+        ImGui::Begin("DirectX11 Texture Test");
+        ImGui::Text("pointer = %p", my_texture);
+        ImGui::Text("size = %d x %d", my_image_width, my_image_height);
+        ImGui::Image((void*)my_texture, ImVec2(my_image_width, my_image_height));
+        ImGui::Image((void*)my_texture, ImVec2(my_image_width * 0.5f, my_image_height * 0.5f)); // half size
+        ImGui::End();
+        #pragma endregion
 
-            // Display contents in a scrolling region
-            ImGui::TextColored(ImVec4(1, 1, 0, 1), "Important Stuff");
-            ImGui::BeginChild("Scrolling");
-            for (int n = 0; n < 50; n++)
-                ImGui::Text("%04d: Some text", n);
-            ImGui::EndChild();
-            ImGui::End();
-        }
 
         // Rendering
         ImGui::Render();
