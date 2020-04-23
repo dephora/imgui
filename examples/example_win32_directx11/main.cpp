@@ -9,6 +9,11 @@
 #include <dinput.h>
 #include <tchar.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+#include "ImGuiUtils.h"
+
+
 // Data
 static ID3D11Device*            g_pd3dDevice = NULL;
 static ID3D11DeviceContext*     g_pd3dDeviceContext = NULL;
@@ -68,6 +73,9 @@ int main(int, char**)
 
     // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
     ImGuiStyle& style = ImGui::GetStyle();
+    ImGuiUtils::SetupImGuiStyle(true, 0.3f);
+
+
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
     {
         style.WindowRounding = 0.0f;
@@ -86,7 +94,8 @@ int main(int, char**)
     // - Read 'docs/FONTS.txt' for more instructions and details.
     // - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
     //io.Fonts->AddFontDefault();
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
+    io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
+    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Karla-Regular.ttf", 16.0f);
     //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
     //io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
     //io.Fonts->AddFontFromFileTTF("../../misc/fonts/ProggyTiny.ttf", 10.0f);
@@ -97,6 +106,11 @@ int main(int, char**)
     bool show_demo_window = true;
     bool show_another_window = false;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
+    // Sandbox state
+    bool my_tool_active = true;
+    ImVec4 my_color = ImVec4(0.15f, 0.15f, 0.10f, 1.00f);
+    
 
     // Main loop
     MSG msg;
@@ -154,6 +168,37 @@ int main(int, char**)
             ImGui::Text("Hello from another window!");
             if (ImGui::Button("Close Me"))
                 show_another_window = false;
+            ImGui::End();
+        }
+
+        if (my_tool_active){
+            
+            ImGui::Begin("My First Tool", &my_tool_active, ImGuiWindowFlags_MenuBar);
+            if (ImGui::BeginMenuBar())
+            {
+                if (ImGui::BeginMenu("File"))
+                {
+                    if (ImGui::MenuItem("Open..", "Ctrl+O")) { /* Do stuff */ }
+                    if (ImGui::MenuItem("Save", "Ctrl+S")) { /* Do stuff */ }
+                    if (ImGui::MenuItem("Close", "Ctrl+W")) { my_tool_active = false; }
+                    ImGui::EndMenu();
+                }
+                ImGui::EndMenuBar();
+            }
+
+            // Edit a color (stored as ~4 floats)
+            ImGui::ColorEdit4("Color", (float*)&my_color);
+
+            // Plot some values
+            const float my_values[] = { 0.2f, 0.1f, 1.0f, 0.5f, 0.9f, 2.2f };
+            ImGui::PlotLines("Frame Times", my_values, IM_ARRAYSIZE(my_values));
+
+            // Display contents in a scrolling region
+            ImGui::TextColored(ImVec4(1, 1, 0, 1), "Important Stuff");
+            ImGui::BeginChild("Scrolling");
+            for (int n = 0; n < 50; n++)
+                ImGui::Text("%04d: Some text", n);
+            ImGui::EndChild();
             ImGui::End();
         }
 

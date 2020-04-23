@@ -7,6 +7,15 @@
     <Filter Include="sources">
       <UniqueIdentifier>{08e36723-ce4f-4cff-9662-c40801cf1acf}</UniqueIdentifier>
     </Filter>
+    <Filter Include="libs">
+      <UniqueIdentifier>{cc089775-1cd1-495e-a93a-cce9add1d2ba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="themes">
+      <UniqueIdentifier>{6eba9b07-c1d2-4407-9cf2-fbeaf6272bf2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utils">
+      <UniqueIdentifier>{cd3e1454-db45-41a9-8eb1-0b57202b9401}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\imconfig.h">
@@ -23,6 +32,12 @@
     </ClInclude>
     <ClInclude Include="..\imgui_impl_dx11.h">
       <Filter>sources</Filter>
+    </ClInclude>
+    <ClInclude Include="stb_image.h">
+      <Filter>libs</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGuiUtils.h">
+      <Filter>utils</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -53,5 +68,10 @@
     <None Include="..\..\misc\natvis\imgui.natvis">
       <Filter>sources</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="darkgray.txt">
+      <Filter>themes</Filter>
+    </Text>
   </ItemGroup>
 </Project>
